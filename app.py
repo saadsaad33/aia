@@ -3,45 +3,53 @@ from google import genai
 import PIL.Image
 import os
 
-# --- APP CONFIG ---
-st.set_page_config(page_title=" Digital Stylist", layout="wide")
-st.title("Digital Stylist 1.0")
+# --- 1. APP CONFIG ---
+st.set_page_config(page_title="AI Digital Stylist", layout="wide", page_icon="👗")
+st.title("👗 AI Digital Stylist (2026 Edition)")
 
-# Sidebar for Settings
+# --- 2. API KEY SECURITY ---
+# This looks for GEMINI_API_KEY in your Streamlit Cloud Secrets vault
+api_key = st.secrets.get("GEMINI_API_KEY")
+
+# Sidebar for manual override and settings
 with st.sidebar:
     st.header("Settings")
-    api_key = st.text_input("Enter Gemini API Key", type="password")
     
-    # NEW: Selection for the model to prevent 404 errors
-    # In 2026, 'gemini-2.0-flash' is the most stable free-tier model.
+    # If the key isn't in secrets, show the input box
+    if not api_key:
+        api_key = st.text_input("Enter Gemini API Key", type="password")
+        st.info("Get your key at aistudio.google.com")
+    else:
+        st.success("API Key loaded from Secrets ✅")
+
     model_choice = st.selectbox(
-        "Select Model (Try another if 404 occurs)",
+        "Select Model",
         ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
     )
     
-    st.info("Get your key at aistudio.google.com")
     uploaded_files = st.file_uploader(
         "Upload photos of your clothes", 
         accept_multiple_files=True, 
         type=['png', 'jpg', 'jpeg']
     )
 
-# --- VALIDATION ---
+# --- 3. VALIDATION ---
 if not api_key:
-    st.warning("Please enter your API Key in the sidebar to start.")
+    st.warning("Please enter your API Key in the sidebar or add it to Streamlit Secrets.")
     st.stop()
 
-# Initialize the Client with the NEW SDK syntax
+# Initialize Client
 try:
     client = genai.Client(api_key=api_key)
 except Exception as e:
-    st.error(f"Failed to connect to Google AI: {e}")
+    st.error(f"Failed to connect: {e}")
     st.stop()
 
-# --- CLOSET SECTION ---
+# --- 4. CLOSET SECTION ---
 if uploaded_files:
     st.subheader("👕 Your Digital Closet")
-    cols = st.columns(5)
+    # Use columns that collapse well on mobile
+    cols = st.columns([1, 1, 1, 1, 1])
     images_for_ai = []
     
     for i, file in enumerate(uploaded_files):
@@ -52,7 +60,7 @@ if uploaded_files:
 
     st.divider()
 
-    # --- CHAT SECTION ---
+    # --- 5. CHAT SECTION ---
     st.subheader("💬 Chat with your Stylist")
     
     if "messages" not in st.session_state:
@@ -68,18 +76,15 @@ if uploaded_files:
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner(f"Stylist is thinking using {model_choice}..."):
+            with st.spinner("Analyzing your wardrobe..."):
                 try:
-                    # Combine all images and the text prompt into one request
-                    # We pass 'images_for_ai' as a list directly
+                    # System instruction tells the AI how to behave
+                    sys_instr = "You are a professional fashion stylist. Use the provided images of clothing to suggest outfits. If no suitable clothing is found in the images, suggest what to buy to complete the look."
+                    
                     response = client.models.generate_content(
                         model=model_choice,
-                        contents=[
-                            "You are a fashion expert. Based ON ONLY these images, "
-                            "create a stylish outfit for the following request: ",
-                            *images_for_ai, 
-                            prompt
-                        ]
+                        contents=["Based on my closet images:", *images_for_ai, prompt],
+                        config={"system_instruction": sys_instr}
                     )
                     
                     full_response = response.text
@@ -87,11 +92,6 @@ if uploaded_files:
                     st.session_state.messages.append({"role": "assistant", "content": full_response})
                     
                 except Exception as e:
-                    if "404" in str(e):
-                        st.error(f"Model '{model_choice}' not found.")
-                        st.info("Try selecting 'gemini-2.5-flash' from the sidebar.")
-                    else:
-                        st.error(f"API Error: {e}")
+                    st.error(f"Error: {e}")
 else:
-
-    st.info("Step 1: Paste API Key. Step 2: Upload clothes in the sidebar!")
+    st.info("👋 Welcome! Upload some photos of your clothes in the sidebar to start your digital closet.")
