@@ -3,8 +3,8 @@ from google import genai
 import PIL.Image
 
 # --- 1. APP CONFIG ---
-st.set_page_config(page_title="AI Digital Stylist", layout="wide", page_icon="👗")
-st.title("👗 AI Digital Stylist (2026 Edition)")
+st.set_page_config(page_title=" Digital Stylist", layout="wide", page_icon="👗")
+st.title("👗  Digital Stylist 1.0")
 
 # --- 2. API KEY SECURITY ---
 # Prioritizes Streamlit Secrets for your deployed web app
@@ -98,4 +98,5 @@ if uploaded_files:
                     st.error(f"API Error: {e}")
 else:
     st.info("👋 Ready to style! Upload some photos of your clothes in the sidebar to begin.")
+
 
