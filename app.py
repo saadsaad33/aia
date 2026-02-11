@@ -4,8 +4,8 @@ import PIL.Image
 import os
 
 # --- APP CONFIG ---
-st.set_page_config(page_title="AI Digital Stylist", layout="wide")
-st.title("👗 AI Digital Stylist (2026 Edition)")
+st.set_page_config(page_title=" Digital Stylist", layout="wide")
+st.title("Digital Stylist 1.0")
 
 # Sidebar for Settings
 with st.sidebar:
@@ -93,4 +93,5 @@ if uploaded_files:
                     else:
                         st.error(f"API Error: {e}")
 else:
+
     st.info("Step 1: Paste API Key. Step 2: Upload clothes in the sidebar!")
