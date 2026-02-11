@@ -1,32 +1,31 @@
 import streamlit as st
 from google import genai
 import PIL.Image
-import os
 
 # --- 1. APP CONFIG ---
 st.set_page_config(page_title="AI Digital Stylist", layout="wide", page_icon="👗")
 st.title("👗 AI Digital Stylist (2026 Edition)")
 
 # --- 2. API KEY SECURITY ---
-# This looks for GEMINI_API_KEY in your Streamlit Cloud Secrets vault
+# Prioritizes Streamlit Secrets for your deployed web app
 api_key = st.secrets.get("GEMINI_API_KEY")
 
-# Sidebar for manual override and settings
 with st.sidebar:
     st.header("Settings")
     
-    # If the key isn't in secrets, show the input box
     if not api_key:
         api_key = st.text_input("Enter Gemini API Key", type="password")
         st.info("Get your key at aistudio.google.com")
     else:
         st.success("API Key loaded from Secrets ✅")
 
+    # UPDATED: Gemini 2.5 Flash is now the default
     model_choice = st.selectbox(
         "Select Model",
-        ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+        ["gemini-2.5-flash", "gemini-3-flash", "gemini-2.0-flash"]
     )
     
+    st.divider()
     uploaded_files = st.file_uploader(
         "Upload photos of your clothes", 
         accept_multiple_files=True, 
@@ -48,8 +47,7 @@ except Exception as e:
 # --- 4. CLOSET SECTION ---
 if uploaded_files:
     st.subheader("👕 Your Digital Closet")
-    # Use columns that collapse well on mobile
-    cols = st.columns([1, 1, 1, 1, 1])
+    cols = st.columns(5)
     images_for_ai = []
     
     for i, file in enumerate(uploaded_files):
@@ -76,14 +74,19 @@ if uploaded_files:
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing your wardrobe..."):
+            with st.spinner(f"Stylist is analyzing images with {model_choice}..."):
                 try:
-                    # System instruction tells the AI how to behave
-                    sys_instr = "You are a professional fashion stylist. Use the provided images of clothing to suggest outfits. If no suitable clothing is found in the images, suggest what to buy to complete the look."
+                    # PROMPT: Updated for the 2.5 Flash 'Agentic Vision' capabilities
+                    sys_instr = (
+                        "You are an AI Fashion Stylist with Agentic Vision. "
+                        "Identify specific clothing items, colors, and textures from the images. "
+                        "Create a complete outfit recommendation based ONLY on these items. "
+                        "If an outfit is missing a key piece (like shoes), suggest a specific style to match."
+                    )
                     
                     response = client.models.generate_content(
                         model=model_choice,
-                        contents=["Based on my closet images:", *images_for_ai, prompt],
+                        contents=["Closet contents:", *images_for_ai, f"User Request: {prompt}"],
                         config={"system_instruction": sys_instr}
                     )
                     
@@ -92,6 +95,7 @@ if uploaded_files:
                     st.session_state.messages.append({"role": "assistant", "content": full_response})
                     
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"API Error: {e}")
 else:
-    st.info("👋 Welcome! Upload some photos of your clothes in the sidebar to start your digital closet.")
+    st.info("👋 Ready to style! Upload some photos of your clothes in the sidebar to begin.")
+
